@@ -23,7 +23,7 @@ class Ship:
         return ''
 
 
-class Game_pole:
+class GamePole:
     ls_pole = []
     name = ''
     ships_array = None
@@ -43,39 +43,58 @@ class Game_pole:
             print(count, '|', *line[1:7], end='\n')
         return ''
 
+    # Добавление корабля на игровое поле
     def add_ship_on_pole(self, ship_):
-        for f in ship_.ls:
-            self.ls_pole[f[0]][f[1]] = '■'
+        start = ship_.start
+        direct = ship_.direction
+        length = ship_.length
+        if direct:
+            for j in range(start[1], start[1] + length):
+                self.ls_pole[start[0]][j] = '■'
+        else:
+            for i in range(start[0], start[0] + length):
+                self.ls_pole[i][start[1]] = '■'
 
+    # функция ввода параметров корабля
     def input_ship_start_coord(self):
-        while 1:
-            print('введите коортинаты начала корабля от 1 до 6')
-            while 1:
-                print('введите X-координату начала корабля:')
-                x = int(input().split()[:1])
-                print('введите Y-координату начала корабля:')
-                y = int(input().split()[:1])
-                if x in range(1, 7) and y in range(1, 7):
-                    start = (x, y)
-                    break
-                else:
-                    print('Некорректный ввод')
-            print('введите направление корабля: 0 - вертикальное, 1 - горизонтальное')
-            while 1:
-                direction = int(input().split()[:1])
-                if direction in (0, 1):
-                    break
-                else:
-                    print('Некорректный ввод')
-            return start, direction
 
-    def check_fields_free(self, ship_):
+        print('введите коортинаты начала корабля от 1 до 6')
+        while 1:
+            try:
+                print('введите X-координату начала корабля:')
+                x = int(input().split()[:1][0])
+                print('введите Y-координату начала корабля:')
+                y = int(input().split()[:1][0])
+                if x not in (1, 2, 3, 4, 5, 6) or y not in (1, 2, 3, 4, 5, 6):
+                    raise Exception
+                break
+            except Exception:
+                print('некорректный ввод, должно быть число от 1 до 6')
+
+        start = (x, y)
+
+        print('введите направление корабля: 0 - вертикальное, 1 - горизонтальное')
+        while 1:
+            try:
+                direction = int(input().split()[:1][0])
+                if direction not in (0, 1):
+                    raise ValueError
+                break
+            except ValueError:
+                print('некорректный ввод, должно быть число 0 или 1')
+        return start, direction
+
+
+    # функция для проверки на возможность добавления корабля по заданным параметром на игровое поле исходя из условий
+    def check_fields_around_free(self, ship_):
 
         if ship_.duration:
             x, y, l = ship_.start[0], ship_.start[1], ship_.length
         else:
             y, x, l = ship_.start[0], ship_.start[1], ship_.length
-        if ([self.ls_pole[x - 1][j] for j in range(y - 1, y + l + 1)].count('0')) != l + 2:
+        if not self.check_fields_is_free(ship_):
+            return 0
+        elif [self.ls_pole[x - 1][j] for j in range(y - 1, y + l + 1)].count('0') != l + 2:
             return 0
         elif [self.ls_pole[x + 1][j] for j in range(y - 1, y + l + 1)].count('0') != l + 2:
             return 0
@@ -86,6 +105,19 @@ class Game_pole:
         else:
             return 1
 
+    def check_fields_is_free(self, ship_):
+        start = ship_.start
+        direction = ship_.direction
+        length = ship_.length
+        if direction:
+            if [self.ls_pole[start[0]][j] for j in range(start[1], start[1] + length)].count('0') == length:
+                return 1
+        else:
+            if [self.ls_pole[start[i]][1] for i in range(start[0], start[0] + length)].count('0') == length:
+                return 1
+        return 0
+
+    # функция для заполнения массива кораблей игрока
     def add_ships(self):
         print('необходимо разместить корабли на игровом поле \n'
               'корабль из 3-х клеток - 1 шт.\n'
@@ -95,26 +127,24 @@ class Game_pole:
               'корабли задаются посредством задания параметров:(0,1),2,1\n'
               'начальные координаты: например (0,1) - 0 по горизонтали, 1 по вертикали\n'
               'размер коробля: от 1-го до 3-х\n'
-              'вертаикальное либо горизонтально расположение: задаётся флагом 0 и 1 соответственно.')
+              'вертаикальное либо горизонтально расположение: задаётся флагом 0 и 1 соответственно.\n'
+              '____________________________________________________________________________________'
+              '\n')
         count = 0
         for line in self.ships_array:
             for i in range(len(line) - count):
                 while 1:
-                    print(f'Осталось {3 - count} кораблей из {count + 1} клеток\n'
+                    print(i)
+                    print(f'Осталось {len(line) - count} корабль(-я) из {count + 1} клеток(-и)\n'
                           f'введите начальные координаты и направление')
                     start_and_direction = self.input_ship_start_coord()
                     s = Ship(start_and_direction[0], count + 1, start_and_direction[1])
-                    if self.check_fields_free(s):
-                        self.ships_array[count].append(s)
-
+                    if self.check_fields_is_free(s):
+                        self.ships_array[count][i] = s
+                        self.add_ship_on_pole(s)
+                        print(self)
+                        print(self.ships_array)
                         break
                     else:
                         print('некорректный ввод, повторите')
-                count += 1
-
-
-print('-' * 10)
-gp = Game_pole('Игрок 1')
-print(gp)
-gp.add_ships()
-print(gp)
+            count += 1
