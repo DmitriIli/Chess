@@ -1,3 +1,6 @@
+from random import randrange
+
+
 class Ship:
     ls = []
     length = None
@@ -7,7 +10,7 @@ class Ship:
     def __init__(self, start, length, direction):
         count = 0
         self.length = length
-        self.duration = direction
+        self.direction = direction
         self.start = start
         if direction:
             for i in range(length):
@@ -27,11 +30,24 @@ class GamePole:
     ls_pole = []
     name = ''
     ships_array = None
+    cpu_flag = None
+    ships_counter = None
 
-    def __init__(self, name):
-        self.name = name
-        self.ls_pole = [['0' for i in (0, 1, 2, 3, 4, 5, 6, 7)] for j in (0, 1, 2, 3, 4, 5, 6, 7)]
-        self.ships_array = [[None for i in (0, 1, 2)] for j in (0, 1, 2)]
+    def __init__(self, name, cpu=None):
+        if cpu:
+            self.name = name
+            self.name = name
+            self.ls_pole = [['0' for i in (0, 1, 2, 3, 4, 5, 6, 7)] for j in (0, 1, 2, 3, 4, 5, 6, 7)]
+            self.ships_array = [[None for i in (0, 1, 2)] for j in (0, 1, 2)]
+            self.ships_counter = 6
+            self.add_cpu_game_pole()
+
+
+        else:
+            self.name = name
+            self.ls_pole = [['0' for i in (0, 1, 2, 3, 4, 5, 6, 7)] for j in (0, 1, 2, 3, 4, 5, 6, 7)]
+            self.ships_array = [[None for i in (0, 1, 2)] for j in (0, 1, 2)]
+            self.ships_counter = 6
 
     def __str__(self):
         count = 0
@@ -79,10 +95,10 @@ class GamePole:
                     raise Exception('некорректный ввод, должно быть число от 1 до 6')
 
                 if direction:
-                    if x + length > 6:
+                    if y + length > 7:
                         raise Exception('корабль выходит за пределы поля')
                 else:
-                    if y+length > 6:
+                    if x + length > 7:
                         raise Exception('корабль выходит за пределы поля')
                 break
             except Exception as e:
@@ -91,31 +107,41 @@ class GamePole:
         return (x, y), direction
 
     # функция для проверки на возможность добавления корабля по заданным параметром на игровое поле исходя из условий
-    def check_fields_around_free(self, ship_):
-
-        if ship_.diraction:
-            x, y, l = ship_.start[0], ship_.start[1], ship_.length
+    def check_fields_free(self, ship_):
+        x, y, l = ship_.start[0], ship_.start[1], ship_.length
+        if ship_.direction:
+            if not self.check_fields_is_free(ship_):
+                return 0
+            elif [self.ls_pole[x - 1][j] for j in range(y - 1, y + l + 1)].count('0') != l + 2:
+                return 0
+            elif [self.ls_pole[x + 1][j] for j in range(y - 1, y + l + 1)].count('0') != l + 2:
+                return 0
+            elif [self.ls_pole[i][y - 1] for i in range(x - 1, x + 2)].count('0') != 3:
+                return 0
+            elif [self.ls_pole[i][y + 1] for i in range(x - 1, x + 2)].count('0') != 3:
+                return 0
+            elif not self.check_fields_is_free(ship_):
+                return 0
+            else:
+                return 1
         else:
-            y, x, l = ship_.start[0], ship_.start[1], ship_.length
-        if not self.check_fields_is_free(ship_):
-            return 0
-        elif [self.ls_pole[x - 1][j] for j in range(y - 1, y + l + 1)].count('0') != l + 2:
-            return 0
-        elif [self.ls_pole[x + 1][j] for j in range(y - 1, y + l + 1)].count('0') != l + 2:
-            return 0
-        elif [self.ls_pole[i][y - 1] for i in range(x - 1, x + 2)].count('0') != 3:
-            return 0
-        elif [self.ls_pole[i][y + 1] for i in range(x - 1, x + 2)].count('0') != 3:
-            return 0
-        else:
-            return 1
+            if not self.check_fields_is_free(ship_):
+                return 0
+            elif [self.ls_pole[i][y - 1] for i in range(x - 1, x + l + 1)].count('0') != l + 2:
+                return 0
+            elif [self.ls_pole[i][y + 1] for i in range(x - 1, x + l + 1)].count('0') != l + 2:
+                return 0
+            elif [self.ls_pole[x - 1][j] for j in range(y - 1, y + 2)].count('0') != 3:
+                return 0
+            elif [self.ls_pole[x + 1][j] for j in range(y - 1, y + 2)].count('0') != 3:
+                return 0
+            else:
+                return 1
 
     def check_fields_is_free(self, ship_):
         start = ship_.start
         direction = ship_.direction
         length = ship_.length
-        ls = self.ls_pole
-        x, y = start
         if direction:
             if [self.ls_pole[start[0]][j] for j in range(start[1], start[1] + length)].count('0') == length:
                 return 1
@@ -141,16 +167,44 @@ class GamePole:
         for line in self.ships_array:
             for i in range(len(line) - count):
                 while 1:
-                    print(f'Осталось {len(line) - i} корабль(-я) из {count + 1} клеток(-и)\n'
+                    print(f'Осталось {len(line) - count - i} корабль(-я) из {count + 1} клеток(-и)\n'
                           f'введите начальные координаты и направление')
-                    start_and_direction = self.input_ship_start_coord(count+1)
+                    start_and_direction = self.input_ship_start_coord(count + 1)
                     s = Ship(start_and_direction[0], count + 1, start_and_direction[1])
-                    if self.check_fields_is_free(s):
+                    if self.check_fields_free(s):
                         self.ships_array[count][i] = s
                         self.add_ship_on_pole(s)
                         print(self)
-                        print(self.ships_array)
                         break
                     else:
                         print('Клетка занята')
             count += 1
+
+    def add_cpu_game_pole(self):
+        count = 0
+        for line in self.ships_array:
+            for i in range(len(line) - count):
+                while 1:
+                    try:
+                        x = randrange(1, 7)
+                        y = randrange(1, 7)
+                        direction = randrange(0, 2)
+
+                        if direction:
+                            if y + count + 1 > 7:
+                                raise Exception
+                        else:
+                            if x + count + 1 > 7:
+                                raise Exception
+                    except Exception as e:
+                        continue
+                    start_and_direction = ((x, y), direction)
+                    s = Ship(start_and_direction[0], count + 1, start_and_direction[1])
+                    print(start_and_direction[0], count + 1, start_and_direction[1])
+                    if self.check_fields_free(s):
+                        self.ships_array[count][i] = s
+                        self.add_ship_on_pole(s)
+                        print(self)
+                        break
+            count += 1
+        # print(self)
